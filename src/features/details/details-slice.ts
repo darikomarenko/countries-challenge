@@ -1,21 +1,30 @@
 import { createAsyncThunk, createSlice } from '@reduxjs/toolkit';
+import { Country, Extra, Status } from 'types';
 
-export const loadCountryByName = createAsyncThunk(
+export const loadCountryByName = createAsyncThunk<{data: Country[]}, string, {extra: Extra}>(
   '@@details/load-country-by-name',
   (name, {extra: {client, api}}) => {
     return client.get(api.searchByCountry(name));
   }
 );
-export const loadNeighborsByBorder = createAsyncThunk(
+export const loadNeighborsByBorder = createAsyncThunk<{data: Country[]}, string[], {extra: Extra}>(
   '@@details/load-neighbors',
   (borders, {extra: {client, api}}) => {
     return client.get(api.filterByCode(borders));
   }
 );
 
-const initialState = {
+type DetailsSlice = {
+  currentCountry: Country | null,
+  neighbours: string[],
+  status: Status,
+  error: string | null 
+
+}
+
+const initialState: DetailsSlice = {
   currentCountry: null,
-  neighbors: [],
+  neighbours: [],
   status: 'idle',
   error: null,
 }
@@ -32,16 +41,16 @@ const detailsSlice = createSlice({
         state.status = 'loading';
         state.error = null;
       })
-      .addCase(loadCountryByName.rejected, (state, action) => {
+      .addCase(loadCountryByName.rejected, (state) => {
         state.status = 'rejected';
-        state.error = action.payload || action.meta.error;
+        state.error = 'Cannot load data';
       })
       .addCase(loadCountryByName.fulfilled, (state, action) => {
         state.status = 'idle';
         state.currentCountry = action.payload.data[0];
       })
       .addCase(loadNeighborsByBorder.fulfilled, (state, action) => {
-        state.neighbors = action.payload.data.map(country => country.name);
+        state.neighbours = action.payload.data.map(country => country.name);
       })
   }
 });
@@ -49,8 +58,3 @@ const detailsSlice = createSlice({
 export const {clearDetails} = detailsSlice.actions;
 export const detailsReducer = detailsSlice.reducer;
 
-
-// selectors
-export const selectCurrentCountry = (state) => state.details.currentCountry;
-export const selectDetails = (state) => state.details;
-export const selectNeighbors = (state) => state.details.neighbors;
